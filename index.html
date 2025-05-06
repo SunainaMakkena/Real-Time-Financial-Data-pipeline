@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Data Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f7fa;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background-color: #3182ce;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer; /* Add cursor */
+        }
+
+        .btn-primary:hover {
+            background-color: #2c5282;
+        }
+         .btn-primary:disabled { /* Style for disabled state */
+            background-color: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #4a5568;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer; /* Add cursor */
+        }
+
+        .btn-secondary:hover {
+            background-color: #cbd5e0;
+        }
+        .btn-secondary:disabled { /* Style for disabled state */
+            background-color: #f7fafc;
+            color: #a0aec0;
+            cursor: not-allowed;
+        }
+
+
+        .tab-active {
+            border-bottom: 2px solid #3182ce;
+            color: #3182ce;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            background-color: white;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background-color: #c6f6d5;
+            color: #2f855a;
+        }
+
+        .badge-pending {
+            background-color: #fefcbf;
+            color: #975a16;
+        }
+
+        .badge-error {
+            background-color: #fed7d7;
+            color: #c53030;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3182ce;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1000;
+            right: 30px;
+            top: 30px;
+            font-size: 16px;
+        }
+
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein {
+            from {right: 0; opacity: 0;}
+            to {right: 30px; opacity: 1;}
+        }
+
+        @keyframes fadeout {
+            from {right: 30px; opacity: 1;}
+            to {right: 0; opacity: 0;}
+        }
+    </style>
+</head>
+<body>
+    <div id="toast"></div>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Financial Data Platform</h1>
+            <div>
+                <button id="refreshButton" class="btn-secondary mr-2">
+                    <i class="fas fa-sync-alt mr-2"></i>Refresh
+                </button>
+                <button id="settingsButton" class="btn-secondary">
+                    <i class="fas fa-cog mr-2"></i>Settings
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700">Data Sources</h2>
+                    <span class="badge badge-success" id="dataSourceCount">0 Available</span> <!-- This is static text, update if needed -->
+                </div>
+                <p class="text-gray-600 mb-4">Manage data sources and configure data ingestion.</p>
+                <button id="ingestDataNavBtn" class="btn-primary w-full">
+                    <i class="fas fa-database mr-2"></i>Ingest Data
+                </button>
+            </div>
+
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700">Datasets</h2>
+                    <span class="badge badge-success" id="datasetCount">0 Available</span>
+                </div>
+                <p class="text-gray-600 mb-4">Browse, query, and analyze your financial datasets.</p>
+                <button id="exploreDataNavBtn" class="btn-primary w-full">
+                    <i class="fas fa-chart-bar mr-2"></i>Explore Data
+                </button>
+            </div>
+
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700">Transformations</h2>
+                    <span class="badge badge-success" id="transformationCount">0 Available</span>
+                </div>
+                <p class="text-gray-600 mb-4">Transform and process data across storage layers.</p>
+                <button id="transformDataNavBtn" class="btn-primary w-full">
+                    <i class="fas fa-magic mr-2"></i>Transform Data
+                </button>
+            </div>
+        </div>
+
+        <div class="flex mb-6">
+            <button id="ingestTabBtn" class="px-6 py-3 tab-active">Data Ingestion</button>
+            <button id="exploreTabBtn" class="px-6 py-3">Data Explorer</button>
+            <button id="transformTabBtn" class="px-6 py-3">Data Transformation</button>
+        </div>
+
+        <!-- Data Ingestion Tab -->
+        <div id="ingestTab" class="card p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Data Ingestion</h2>
+
+            <form id="ingestionForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Data Source</label>
+                    <select id="dataSource" class="form-select">
+                        <option value="alphavantage">Alpha Vantage</option>
+                        <option value="yahoo_finance">Yahoo Finance</option>
+                        <option value="csv">CSV File</option>
+                    </select>
+
+                    <label class="block text-gray-700 font-medium mb-2">Data Type</label>
+                    <select id="dataType" class="form-select">
+                        <!-- Options populated by JS -->
+                    </select>
+
+                    <div id="symbolsContainer">
+                        <label class="block text-gray-700 font-medium mb-2">Symbols (comma-separated)</label>
+                        <input type="text" id="symbols" placeholder="AAPL,MSFT,GOOGL / USD_EUR / GDP / BTC-USD" class="form-input">
+                    </div>
+
+                    <div id="dateRangeContainer" class="mb-4">
+                        <label class="block text-gray-700 font-medium mb-2">Date Range (Optional - Yahoo Only)</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="date" id="startDate" class="form-input">
+                            <input type="date" id="endDate" class="form-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="csvParamsContainer" style="display: none;">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">CSV Import Parameters</h3>
+
+                    <label class="block text-gray-700 font-medium mb-2">File Path</label>
+                    <input type="text" id="filePath" placeholder="/path/to/data.csv or data/import/my_data.csv" class="form-input">
+
+                    <div id="csvMappingContainer">
+                        <label class="block text-gray-700 font-medium mb-2">Column Mappings (Optional)</label>
+
+                        <div class="grid grid-cols-2 gap-4" id="stockCsvMapping">
+                            <div>
+                                <label class="block text-gray-600 text-sm mb-1">Symbol Column</label>
+                                <input type="text" id="symbolCol" placeholder="symbol (auto-detect)" class="form-input">
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 text-sm mb-1">Date Column</label>
+                                <input type="text" id="dateCol" placeholder="date (auto-detect)" class="form-input">
+                            </div>
+                        </div>
+
+                        <div id="economicCsvMapping" style="display: none;">
+                             <label class="block text-gray-600 text-sm mb-1">Indicator Name (Required)</label>
+                            <input type="text" id="indicatorName" placeholder="GDP" class="form-input">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-600 text-sm mb-1">Date Column</label>
+                                    <input type="text" id="economicDateCol" placeholder="date (auto-detect)" class="form-input">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 text-sm mb-1">Value Column</label>
+                                    <input type="text" id="valueCol" placeholder="value (auto-detect)" class="form-input">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-gray-600 text-sm mb-1">Country (Optional)</label>
+                                <input type="text" id="country" placeholder="USA" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2">
+                    <button type="submit" id="submitIngestion" class="btn-primary">
+                        <i class="fas fa-upload mr-2"></i>Start Ingestion
+                    </button>
+                </div>
+            </form>
+
+            <div id="ingestionResults" class="mt-8 hidden">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Ingestion Results</h3>
+                <div class="bg-gray-100 p-4 rounded-md">
+                    <div class="flex items-center mb-2">
+                        <span class="font-medium mr-2">Request ID:</span>
+                        <span id="requestId"></span>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <span class="font-medium mr-2">Status:</span>
+                        <span id="status"></span>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <span class="font-medium mr-2">Message:</span>
+                        <span id="message"></span>
+                    </div>
+                    <div class="flex items-center mb-2" id="recordsCountContainer" style="display: none;">
+                        <span class="font-medium mr-2">Records Count:</span>
+                        <span id="recordsCount"></span>
+                    </div>
+                    <div id="errorsContainer" class="hidden">
+                        <span class="font-medium">Errors:</span>
+                        <ul id="errorsList" class="list-disc pl-5 mt-2 text-red-600"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Explorer Tab -->
+        <div id="exploreTab" class="card p-6 mb-8 hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Data Explorer</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Data Layer</label>
+                    <select id="dataLayer" class="form-select">
+                        <option value="bronze">Bronze (Raw)</option>
+                        <option value="silver">Silver (Processed)</option>
+                        <option value="gold">Gold (Analytics)</option>
+                    </select>
+                </div>
+
+                <div id="datasetsContainer" class="md:col-span-3">
+                    <label class="block text-gray-700 font-medium mb-2">Select Dataset</label>
+                    <select id="datasetSelect" class="form-select">
+                        <option value="">-- Select a layer first --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="datasetInfo" class="mb-6 hidden">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Dataset Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="card p-4">
+                        <h4 class="text-sm font-medium text-gray-500">Data Type</h4>
+                        <p id="infoDataType" class="text-lg font-semibold"></p>
+                    </div>
+                    <div class="card p-4">
+                        <h4 class="text-sm font-medium text-gray-500">Source</h4>
+                        <p id="infoSource" class="text-lg font-semibold"></p>
+                    </div>
+                    <div class="card p-4">
+                        <h4 class="text-sm font-medium text-gray-500">Record Count</h4>
+                        <p id="infoRecordCount" class="text-lg font-semibold"></p>
+                    </div>
+                    <div class="card p-4">
+                        <h4 class="text-sm font-medium text-gray-500">Date Range</h4>
+                        <p id="infoDateRange" class="text-lg font-semibold"></p>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap">
+                    <span class="text-sm font-medium text-gray-500 mr-2">Symbols/Indicators:</span>
+                    <div id="infoSymbols" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="mt-4 text-sm">
+                    <span class="font-medium text-gray-500">Last Updated:</span>
+                    <span id="infoUpdated" class="ml-1"></span>
+                </div>
+            </div>
+
+            <div id="dataDisplay" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-700">Data Preview (First 100 Rows)</h3>
+                    <button id="downloadDataBtn" class="btn-secondary">
+                        <i class="fas fa-download mr-2"></i>Download CSV
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead>
+                            <tr id="dataTableHeader"></tr>
+                        </thead>
+                        <tbody id="dataTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div id="visualizationContainer" class="mt-8 hidden">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Visualization (Placeholder)</h3>
+                    <div class="bg-white p-4 rounded-md shadow">
+                        <div id="chartContainer" style="height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Transformation Tab -->
+        <div id="transformTab" class="card p-6 mb-8 hidden">
+             <h2 class="text-2xl font-bold text-gray-800 mb-6">Data Transformation</h2>
+
+            <form id="transformationForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-gray-700 font-medium mb-2">Source Dataset</label>
+                    <select id="sourcePath" class="form-select">
+                        <option value="">-- Select a source dataset --</option>
+                    </select>
+
+                    <label class="block text-gray-700 font-medium mb-2">Transformation Type</label>
+                    <select id="transformationType" class="form-select">
+                        <option value="clean">Clean Data</option>
+                        <option value="normalize">Normalize Data</option>
+                        <option value="aggregate">Aggregate Data</option>
+                    </select>
+
+                     <label class="block text-gray-700 font-medium mb-2">Destination Layer</label>
+                    <select id="destinationLayer" class="form-select">
+                        <option value="silver">Silver (Processed)</option>
+                        <option value="gold">Gold (Analytics)</option>
+                    </select>
+
+                    <label class="block text-gray-700 font-medium mb-2">Destination Filename (Optional)</label>
+                    <input type="text" id="destinationFilename" placeholder="auto-generated if empty" class="form-input">
+                </div>
+
+                 <div id="transformationParamsContainer">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4">Transformation Parameters</h3>
+
+                    <!-- Parameters specific to 'normalize' -->
+                    <div id="normalizeParamsContainer" style="display: none;">
+                         <label class="block text-gray-700 font-medium mb-2">Data Type of Source (Required)</label>
+                         <select id="normalizeDataType" class="form-select">
+                             <option value="stock">Stock</option>
+                             <option value="forex">Forex</option>
+                             <option value="crypto">Crypto</option>
+                             <option value="economic">Economic</option>
+                         </select>
+                        <!-- Add other normalization params if needed -->
+                    </div>
+
+                    <!-- Parameters specific to 'aggregate' -->
+                    <div id="aggregateParamsContainer" style="display: none;">
+                        <label class="block text-gray-700 font-medium mb-2">Aggregation Period</label>
+                        <select id="aggregationPeriod" class="form-select">
+                            <option value="D">Daily</option>
+                            <option value="W">Weekly</option>
+                            <option value="M">Monthly</option>
+                            <option value="Q">Quarterly</option>
+                            <option value="Y">Yearly</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1 mb-2">
+                            Define aggregation columns and functions in the API/backend if needed beyond defaults.
+                        </p>
+                         <!-- Add UI for agg_columns dict if desired -->
+                    </div>
+
+                    <!-- Parameters specific to 'clean' (optional examples) -->
+                     <div id="cleanParamsContainer" style="display: none;">
+                         <p class="text-sm text-gray-600">Cleaning uses standard steps (drop NA, drop duplicates, basic type conversion). Add specific parameters in backend if needed.</p>
+                         <!-- Example optional clean param:
+                         <label class="block text-gray-700 font-medium mb-2">
+                             <input type="checkbox" id="cleanRemoveOutliers" class="mr-2"> Remove Outliers (Example - not implemented)
+                         </label>
+                         -->
+                     </div>
+                </div>
+
+
+                <div class="md:col-span-2">
+                    <button type="submit" id="submitTransformation" class="btn-primary mt-4">
+                        <i class="fas fa-cogs mr-2"></i>Run Transformation
+                    </button>
+                </div>
+            </form>
+
+             <div id="transformationResults" class="mt-8 hidden">
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Transformation Results</h3>
+                <div class="bg-gray-100 p-4 rounded-md">
+                    <div class="flex items-center mb-2">
+                        <span class="font-medium mr-2">Status:</span>
+                        <span id="transformStatus"></span>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <span class="font-medium mr-2">Message:</span>
+                        <span id="transformMessage"></span>
+                    </div>
+                    <div class="flex items-center mb-2" id="transformRecordsContainer" style="display: none;">
+                        <span class="font-medium mr-2">Records Processed:</span>
+                        <span id="transformRecords"></span>
+                    </div>
+                    <div class="flex items-center mb-2" id="transformFileContainer" style="display: none;">
+                        <span class="font-medium mr-2">Output File:</span>
+                        <span id="transformFile"></span>
+                    </div>
+                    <div class="mt-4">
+                        <button id="viewTransformedDataBtn" class="btn-secondary" disabled>
+                            <i class="fas fa-table mr-2"></i>View Transformed Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // API URL - Adjust if your backend runs elsewhere
+            const API_URL = window.location.origin; // Assumes backend runs on same host/port
+
+            // Tab switching elements
+            const ingestTabBtn = document.getElementById('ingestTabBtn');
+            const exploreTabBtn = document.getElementById('exploreTabBtn');
+            const transformTabBtn = document.getElementById('transformTabBtn');
+            const ingestTab = document.getElementById('ingestTab');
+            const exploreTab = document.getElementById('exploreTab');
+            const transformTab = document.getElementById('transformTab');
+
+            // Navigation buttons
+            const ingestDataNavBtn = document.getElementById('ingestDataNavBtn');
+            const exploreDataNavBtn = document.getElementById('exploreDataNavBtn');
+            const transformDataNavBtn = document.getElementById('transformDataNavBtn');
+
+            // Ingestion form elements
+            const ingestionForm = document.getElementById('ingestionForm');
+            const ingestionResults = document.getElementById('ingestionResults');
+            const dataSource = document.getElementById('dataSource');
+            const dataType = document.getElementById('dataType');
+            const csvParamsContainer = document.getElementById('csvParamsContainer');
+            const stockCsvMapping = document.getElementById('stockCsvMapping');
+            const economicCsvMapping = document.getElementById('economicCsvMapping');
+            const submitIngestionBtn = document.getElementById('submitIngestion');
+
+            // Explorer elements
+            const dataLayerSelect = document.getElementById('dataLayer');
+            const datasetSelect = document.getElementById('datasetSelect');
+            const datasetInfoDiv = document.getElementById('datasetInfo');
+            const dataDisplayDiv = document.getElementById('dataDisplay');
+            const downloadDataBtn = document.getElementById('downloadDataBtn');
+
+            // Transformation elements
+            const transformationForm = document.getElementById('transformationForm');
+            const sourcePathSelect = document.getElementById('sourcePath');
+            const transformationTypeSelect = document.getElementById('transformationType');
+            const destinationLayerSelect = document.getElementById('destinationLayer');
+            const destinationFilenameInput = document.getElementById('destinationFilename');
+            const normalizeParamsContainer = document.getElementById('normalizeParamsContainer');
+            const aggregateParamsContainer = document.getElementById('aggregateParamsContainer');
+            const cleanParamsContainer = document.getElementById('cleanParamsContainer');
+            const transformationResultsDiv = document.getElementById('transformationResults');
+            const viewTransformedDataBtn = document.getElementById('viewTransformedDataBtn');
+            const submitTransformationBtn = document.getElementById('submitTransformation');
+
+
+            // Initial state counts
+            let datasetCount = 0;
+            let transformationCount = 0; // Count of datasets available for transformation
+
+            // --- Utility Functions ---
+
+            function showToast(message, isError = false) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.style.backgroundColor = isError ? '#c53030' : '#333'; // Red for errors
+                toast.className = 'show';
+                setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+            }
+
+             function formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                try {
+                    // Attempt to parse potentially different date formats
+                    const date = new Date(dateString);
+                    // Check if parsing was successful
+                    if (isNaN(date.getTime())) {
+                        return dateString; // Return original string if parsing failed
+                    }
+                    // Use options for clarity, locale format is generally good
+                    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                    return date.toLocaleString(undefined, options);
+                } catch (e) {
+                     console.warn("Date formatting error for:", dateString, e);
+                    return dateString; // Fallback to original string on error
+                }
+            }
+
+            function addOption(selectElement, value, text) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = text;
+                selectElement.appendChild(option);
+            }
+
+            function setLoadingState(button, isLoading) {
+                 if (isLoading) {
+                     button.disabled = true;
+                     button.innerHTML = '<div class="loader" style="width: 20px; height: 20px; border-width: 3px;"></div>'; // Smaller loader
+                 } else {
+                     button.disabled = false;
+                     // Restore original button text (store it beforehand if complex)
+                     if (button.id === 'submitIngestion') button.innerHTML = '<i class="fas fa-upload mr-2"></i>Start Ingestion';
+                     if (button.id === 'submitTransformation') button.innerHTML = '<i class="fas fa-cogs mr-2"></i>Run Transformation';
+                 }
+            }
+
+            // --- Tab Switching Logic ---
+
+            function switchTab(activeTab) {
+                [ingestTabBtn, exploreTabBtn, transformTabBtn].forEach(btn => btn.classList.remove('tab-active'));
+                [ingestTab, exploreTab, transformTab].forEach(tab => tab.classList.add('hidden'));
+
+                if (activeTab === 'ingest') {
+                    ingestTabBtn.classList.add('tab-active');
+                    ingestTab.classList.remove('hidden');
+                } else if (activeTab === 'explore') {
+                    exploreTabBtn.classList.add('tab-active');
+                    exploreTab.classList.remove('hidden');
+                    loadDatasets(); // Reload datasets for the current layer
+                } else if (activeTab === 'transform') {
+                    transformTabBtn.classList.add('tab-active');
+                    transformTab.classList.remove('hidden');
+                    loadSourceDatasets(); // Reload source datasets for transformation
+                }
+            }
+
+            ingestTabBtn.addEventListener('click', () => switchTab('ingest'));
+            exploreTabBtn.addEventListener('click', () => switchTab('explore'));
+            transformTabBtn.addEventListener('click', () => switchTab('transform'));
+            ingestDataNavBtn.addEventListener('click', () => switchTab('ingest'));
+            exploreDataNavBtn.addEventListener('click', () => switchTab('explore'));
+            transformDataNavBtn.addEventListener('click', () => switchTab('transform'));
+
+            // --- Ingestion Logic ---
+
+            function updateDataTypeOptions() {
+                const source = dataSource.value;
+                dataType.innerHTML = ''; // Clear existing options
+
+                if (source === 'alphavantage') {
+                    addOption(dataType, 'stock', 'Stock Data');
+                    addOption(dataType, 'forex', 'Forex Data');
+                    addOption(dataType, 'economic', 'Economic Indicators');
+                } else if (source === 'yahoo_finance') {
+                    addOption(dataType, 'stock', 'Stock Data');
+                    addOption(dataType, 'crypto', 'Cryptocurrency');
+                } else if (source === 'csv') {
+                    addOption(dataType, 'stock', 'Stock Data');
+                    addOption(dataType, 'economic', 'Economic Indicators');
+                }
+                 // Trigger change event to update related fields like CSV params visibility
+                dataType.dispatchEvent(new Event('change'));
+            }
+
+
+             dataSource.addEventListener('change', function() {
+                csvParamsContainer.style.display = (this.value === 'csv') ? 'block' : 'none';
+                updateDataTypeOptions(); // Update data types when source changes
+            });
+
+             dataType.addEventListener('change', function() {
+                // Show relevant CSV mapping fields
+                if (dataSource.value === 'csv') {
+                    stockCsvMapping.style.display = (this.value === 'stock') ? 'grid' : 'none';
+                    economicCsvMapping.style.display = (this.value === 'economic') ? 'block' : 'none';
+                } else {
+                     stockCsvMapping.style.display = 'none';
+                     economicCsvMapping.style.display = 'none';
+                }
+            });
+
+            ingestionForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                setLoadingState(submitIngestionBtn, true);
+                ingestionResults.classList.add('hidden'); // Hide previous results
+
+
+                const source = dataSource.value;
+                const type = dataType.value;
+                const symbolsInput = document.getElementById('symbols').value;
+                // Handle symbols/indicators based on type
+                const symbols = symbolsInput.split(',').map(s => s.trim()).filter(s => s);
+
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                const payload = {
+                    source: source,
+                    data_type: type,
+                    symbols: symbols, // Send as list even for single items
+                    params: {}
+                };
+
+                // Add dates if provided (Note: API backend might not use these for all sources)
+                if (startDate) payload.params.start_date = startDate; // Send as YYYY-MM-DD
+                if (endDate) payload.params.end_date = endDate;
+
+                if (source === 'csv') {
+                    const filePath = document.getElementById('filePath').value;
+                    if (!filePath) {
+                         showToast('File Path is required for CSV source.', true);
+                         setLoadingState(submitIngestionBtn, false);
+                         return;
+                    }
+                     payload.params.file_path = filePath;
+
+                    if (type === 'stock') {
+                        const symbolCol = document.getElementById('symbolCol').value;
+                        const dateCol = document.getElementById('dateCol').value;
+                        if (symbolCol) payload.params.symbol_col = symbolCol;
+                        if (dateCol) payload.params.date_col = dateCol;
+                    } else if (type === 'economic') {
+                        const indicatorName = document.getElementById('indicatorName').value;
+                        const dateCol = document.getElementById('economicDateCol').value; // Use correct ID
+                        const valueCol = document.getElementById('valueCol').value;
+                        const country = document.getElementById('country').value;
+
+                         if (!indicatorName) {
+                            showToast('Indicator Name is required for Economic CSV.', true);
+                            setLoadingState(submitIngestionBtn, false);
+                            return;
+                        }
+                        payload.params.indicator_name = indicatorName;
+                        if (dateCol) payload.params.date_col = dateCol;
+                        if (valueCol) payload.params.value_col = valueCol;
+                        if (country) payload.params.country = country;
+                    }
+                }
+
+                try {
+                    const response = await fetch(`${API_URL}/api/ingest`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+
+                    // Display results
+                    document.getElementById('requestId').textContent = result.request_id || 'N/A';
+                    document.getElementById('status').textContent = result.status;
+                    document.getElementById('message').textContent = result.message || 'No message received.';
+
+                    const statusSpan = document.getElementById('status');
+                    statusSpan.className = 'badge'; // Reset class
+                    if (result.status === 'success') statusSpan.classList.add('badge-success');
+                    else if (result.status === 'pending') statusSpan.classList.add('badge-pending');
+                    else statusSpan.classList.add('badge-error');
+
+                    const recordsContainer = document.getElementById('recordsCountContainer');
+                    if (result.records_count !== undefined && result.records_count !== null) {
+                        document.getElementById('recordsCount').textContent = result.records_count.toLocaleString();
+                        recordsContainer.style.display = 'flex';
+                    } else {
+                        recordsContainer.style.display = 'none';
+                    }
+
+                    const errorsContainer = document.getElementById('errorsContainer');
+                    const errorsList = document.getElementById('errorsList');
+                    errorsList.innerHTML = '';
+                    if (result.errors && result.errors.length > 0) {
+                        errorsContainer.classList.remove('hidden');
+                        result.errors.forEach(error => {
+                            const li = document.createElement('li');
+                            li.textContent = error;
+                            errorsList.appendChild(li);
+                        });
+                    } else {
+                        errorsContainer.classList.add('hidden');
+                    }
+
+                    ingestionResults.classList.remove('hidden');
+                    showToast(`Ingestion ${result.status}: ${result.message}`, result.status === 'error');
+
+                     // Refresh dataset list if successful and explore tab is active
+                    if (result.status === 'success' || result.status === 'pending') {
+                         fetchOverallDatasetCount(); // Update dashboard count
+                        if (exploreTabBtn.classList.contains('tab-active')) {
+                            loadDatasets();
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Ingestion API call failed:', error);
+                    showToast('Error submitting ingestion request. Check console.', true);
+                    // Display basic error in results area
+                     document.getElementById('status').textContent = 'Error';
+                     document.getElementById('status').className = 'badge badge-error';
+                     document.getElementById('message').textContent = 'Failed to communicate with API.';
+                     document.getElementById('recordsCountContainer').style.display = 'none';
+                     document.getElementById('errorsContainer').classList.add('hidden');
+                     ingestionResults.classList.remove('hidden');
+                } finally {
+                    setLoadingState(submitIngestionBtn, false);
+                }
+            });
+
+            // --- Data Explorer Logic ---
+
+            async function loadDatasets() {
+                const layer = dataLayerSelect.value;
+                datasetSelect.innerHTML = '<option value="">Loading...</option>'; // Show loading state
+                datasetSelect.disabled = true;
+                datasetInfoDiv.classList.add('hidden'); // Hide stale info
+                dataDisplayDiv.classList.add('hidden'); // Hide stale data
+
+                try {
+                    const response = await fetch(`${API_URL}/api/datasets?layer=${layer}`);
+                    if (!response.ok) {
+                        throw new Error(`Failed to load datasets: ${response.statusText}`);
+                    }
+                    const datasets = await response.json();
+
+                    datasetSelect.innerHTML = '<option value="">-- Select a dataset --</option>';
+                    if (datasets.length === 0) {
+                        addOption(datasetSelect, "", `No datasets found in ${layer} layer`);
+                    } else {
+                        datasets.sort().forEach(dataset => addOption(datasetSelect, dataset, dataset)); // Sort alphabetically
+                    }
+                     datasetSelect.disabled = false;
+                     fetchOverallDatasetCount(); // Update dashboard count
+
+                } catch (error) {
+                    console.error('Error loading datasets:', error);
+                    showToast('Error loading datasets. Check console.', true);
+                    datasetSelect.innerHTML = '<option value="">-- Error loading --</option>';
+                }
+            }
+
+            dataLayerSelect.addEventListener('change', loadDatasets);
+
+             // Dataset Selection Change Handler (FETCH INFO and DATA)
+            datasetSelect.addEventListener('change', async function() {
+                const selectedValue = this.value; // This value should NOT contain .parquet
+                console.log('Selected dataset value from dropdown:', selectedValue);
+
+                datasetInfoDiv.classList.add('hidden'); // Hide previous info/data
+                dataDisplayDiv.classList.add('hidden');
+
+                if (!selectedValue) return; // Exit if "-- Select --" chosen
+
+                const dataLayer = dataLayerSelect.value;
+                const datasetNameForApiPath = selectedValue; // Name is already without extension
+
+                console.log('Using dataset name for API path:', datasetNameForApiPath);
+
+                // --- Fetch Dataset Info ---
+                try {
+                    const infoUrl = `${API_URL}/api/datasets/${datasetNameForApiPath}?layer=${dataLayer}`;
+                    console.log('Fetching dataset info from:', infoUrl);
+                    const infoResponse = await fetch(infoUrl);
+
+                    if (!infoResponse.ok) {
+                        const errorText = await infoResponse.text();
+                        console.error(`Error fetching dataset info: ${infoResponse.status} ${infoResponse.statusText}`, errorText);
+                        throw new Error(`Details not found (${infoResponse.status})`);
+                    }
+
+                    const datasetInfo = await infoResponse.json();
+                    console.log("Received dataset info:", datasetInfo);
+
+                    if (!datasetInfo || typeof datasetInfo !== 'object') {
+                         throw new Error('Invalid dataset info received.');
+                    }
+
+                    // Display dataset info
+                    document.getElementById('infoDataType').textContent = datasetInfo.data_type || 'N/A';
+                    document.getElementById('infoSource').textContent = datasetInfo.source || 'N/A';
+                    document.getElementById('infoRecordCount').textContent = (typeof datasetInfo.record_count === 'number')
+                        ? datasetInfo.record_count.toLocaleString()
+                        : 'N/A';
+                    // Handle potentially null dates from backend
+                    const firstDateStr = datasetInfo.first_date ? formatDate(datasetInfo.first_date) : 'N/A';
+                    const lastDateStr = datasetInfo.last_date ? formatDate(datasetInfo.last_date) : 'N/A';
+                     document.getElementById('infoDateRange').textContent = `${firstDateStr} - ${lastDateStr}`;
+
+
+                    const symbolsContainer = document.getElementById('infoSymbols');
+                    symbolsContainer.innerHTML = ''; // Clear previous symbols
+                    // Check if symbols exist and is an array
+                    if (Array.isArray(datasetInfo.symbols) && datasetInfo.symbols.length > 0) {
+                         datasetInfo.symbols.forEach(symbol => {
+                            const badge = document.createElement('span');
+                            badge.className = 'px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium';
+                            badge.textContent = symbol;
+                            symbolsContainer.appendChild(badge);
+                        });
+                    } else {
+                        symbolsContainer.textContent = 'N/A'; // Indicate if no symbols found
+                    }
+
+
+                    document.getElementById('infoUpdated').textContent = datasetInfo.updated_at ? formatDate(datasetInfo.updated_at) : 'N/A';
+
+                    datasetInfoDiv.classList.remove('hidden'); // Show the info card
+
+                    // --- Fetch Actual Data ---
+                    const dataUrl = `${API_URL}/api/data/${dataLayer}/${datasetNameForApiPath}`;
+                    console.log('Fetching dataset data from:', dataUrl);
+                    const dataResponse = await fetch(dataUrl);
+
+                     if (!dataResponse.ok) {
+                        const errorText = await dataResponse.text();
+                         console.error(`Error fetching dataset data: ${dataResponse.status} ${dataResponse.statusText}`, errorText);
+                        throw new Error(`Data not found (${dataResponse.status})`);
+                    }
+
+                    const data = await dataResponse.json();
+                     console.log("Received data count:", data ? data.length : 0);
+
+                    displayDataTable(data);
+                    setupVisualization(data, datasetInfo.data_type); // Pass data_type for context
+                    dataDisplayDiv.classList.remove('hidden'); // Show data table section
+
+
+                } catch (error) {
+                    console.error('Error loading dataset details/data:', error);
+                    showToast(`Error loading ${datasetNameForApiPath}: ${error.message}`, true);
+                     // Ensure sections are hidden on error
+                    datasetInfoDiv.classList.add('hidden');
+                    dataDisplayDiv.classList.add('hidden');
+                }
+            });
+
+            function displayDataTable(data) {
+                const tableHeader = document.getElementById('dataTableHeader');
+                const tableBody = document.getElementById('dataTableBody');
+                tableHeader.innerHTML = '';
+                tableBody.innerHTML = '';
+
+                 if (!data || !Array.isArray(data) || data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="100%" class="text-center py-4 text-gray-500">No data available or data is not in expected format.</td></tr>';
+                    downloadDataBtn.disabled = true; // Disable download if no data
+                    return;
+                }
+                downloadDataBtn.disabled = false; // Enable download if data exists
+
+                const columns = Object.keys(data[0]);
+                columns.forEach(col => {
+                    const th = document.createElement('th');
+                    th.className = 'px-4 py-2 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider';
+                    th.textContent = col;
+                    tableHeader.appendChild(th);
+                });
+
+                const maxRows = Math.min(data.length, 100);
+                for (let i = 0; i < maxRows; i++) {
+                    const item = data[i];
+                    const row = document.createElement('tr');
+                    row.className = i % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+
+                    columns.forEach(col => {
+                        const td = document.createElement('td');
+                        td.className = 'px-4 py-2 border-b border-gray-200 text-sm whitespace-nowrap'; // Added whitespace-nowrap
+                        let value = item[col];
+
+                        // Attempt to format dates/times
+                        if (typeof value === 'string' && (value.includes('T') || value.match(/^\d{4}-\d{2}-\d{2}$/))) {
+                             value = formatDate(value);
+                         } else if (typeof value === 'number' && !Number.isInteger(value)){
+                            value = value.toFixed(4); // Format floating point numbers
+                         } else if (value === null || value === undefined) {
+                             value = 'N/A'; // Display null/undefined clearly
+                         }
+
+                        td.textContent = value;
+                        row.appendChild(td);
+                    });
+                    tableBody.appendChild(row);
+                }
+            }
+
+             function setupVisualization(data, dataType) {
+                const visualizationContainer = document.getElementById('visualizationContainer');
+                const chartContainer = document.getElementById('chartContainer');
+                chartContainer.innerHTML = ''; // Clear previous chart
+
+                 if (['stock', 'crypto', 'forex', 'economic'].includes(dataType) && data && data.length > 0) {
+                    visualizationContainer.classList.remove('hidden');
+                    // Placeholder - integrate a real charting library here (e.g., Chart.js, Plotly)
+                     chartContainer.innerHTML = `
+                        <div class="text-center py-12">
+                            <i class="fas fa-chart-line text-6xl text-blue-400 mb-4"></i>
+                            <p class="text-gray-500">
+                                Chart visualization placeholder for ${dataType} data (${data.length} records).
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    visualizationContainer.classList.add('hidden');
+                }
+            }
+
+
+            downloadDataBtn.addEventListener('click', function() {
+                const dataLayer = dataLayerSelect.value;
+                const datasetName = datasetSelect.value;
+                if (!datasetName) return;
+
+                const downloadUrl = `${API_URL}/api/data/${dataLayer}/${datasetName}/download`;
+                window.location.href = downloadUrl; // Trigger download
+                showToast(`Initiating download for ${datasetName}.csv...`);
+            });
+
+
+            // --- Data Transformation Logic ---
+
+            async function loadSourceDatasets() {
+                sourcePathSelect.innerHTML = '<option value="">Loading...</option>';
+                sourcePathSelect.disabled = true;
+                let availableCount = 0;
+
+                 try {
+                     // Fetch datasets from multiple layers concurrently
+                    const [bronzeResponse, silverResponse] = await Promise.all([
+                        fetch(`${API_URL}/api/datasets?layer=bronze`),
+                        fetch(`${API_URL}/api/datasets?layer=silver`)
+                    ]);
+
+                    if (!bronzeResponse.ok || !silverResponse.ok) {
+                         throw new Error('Failed to load source datasets');
+                    }
+
+                    const bronzeDatasets = await bronzeResponse.json();
+                    const silverDatasets = await silverResponse.json();
+
+                     sourcePathSelect.innerHTML = '<option value="">-- Select a source dataset --</option>';
+
+                    // Add bronze datasets
+                     if (bronzeDatasets.length > 0) {
+                         const bronzeGroup = document.createElement('optgroup');
+                         bronzeGroup.label = 'Bronze Layer';
+                         bronzeDatasets.sort().forEach(dataset => {
+                             addOption(bronzeGroup, `bronze/${dataset}`, dataset);
+                             availableCount++;
+                         });
+                         sourcePathSelect.appendChild(bronzeGroup);
+                     }
+
+                     // Add silver datasets
+                     if (silverDatasets.length > 0) {
+                         const silverGroup = document.createElement('optgroup');
+                         silverGroup.label = 'Silver Layer';
+                         silverDatasets.sort().forEach(dataset => {
+                             addOption(silverGroup, `silver/${dataset}`, dataset);
+                             availableCount++;
+                         });
+                          sourcePathSelect.appendChild(silverGroup);
+                     }
+
+                     if(availableCount === 0) {
+                          addOption(sourcePathSelect, "", `No datasets available in Bronze or Silver`);
+                     }
+
+                     sourcePathSelect.disabled = false;
+                     transformationCount = availableCount; // Update count
+                     document.getElementById('transformationCount').textContent = `${transformationCount} Available`;
+
+                } catch (error) {
+                    console.error('Error loading source datasets:', error);
+                    showToast('Error loading source datasets for transformation.', true);
+                     sourcePathSelect.innerHTML = '<option value="">-- Error loading --</option>';
+                     document.getElementById('transformationCount').textContent = `0 Available`;
+
+                }
+            }
+
+            transformationTypeSelect.addEventListener('change', function() {
+                 // Show/hide parameter sections based on selected transformation type
+                 normalizeParamsContainer.style.display = (this.value === 'normalize') ? 'block' : 'none';
+                 aggregateParamsContainer.style.display = (this.value === 'aggregate') ? 'block' : 'none';
+                 cleanParamsContainer.style.display = (this.value === 'clean') ? 'block' : 'none';
+            });
+            // Trigger change once initially to set visibility
+            transformationTypeSelect.dispatchEvent(new Event('change'));
+
+             transformationForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                setLoadingState(submitTransformationBtn, true);
+                 transformationResultsDiv.classList.add('hidden'); // Hide previous results
+
+                 const sourcePathValue = sourcePathSelect.value; // e.g., "bronze/dataset_name"
+                 const transformationType = transformationTypeSelect.value;
+                 const destinationLayer = destinationLayerSelect.value;
+                 let destinationFilename = destinationFilenameInput.value.trim();
+
+                 if (!sourcePathValue) {
+                     showToast('Please select a source dataset.', true);
+                     setLoadingState(submitTransformationBtn, false);
+                     return;
+                 }
+
+                 // Auto-generate destination filename if not provided
+                 if (!destinationFilename) {
+                     const sourceName = sourcePathValue.split('/')[1]; // Get name part
+                     destinationFilename = `${sourceName}_${transformationType}`; // Basic naming
+                 }
+                 // Ensure it ends with .parquet (backend might handle this, but good practice)
+                 // if (!destinationFilename.endsWith('.parquet')) {
+                 //     destinationFilename += '.parquet';
+                 // }
+
+                 // Construct full paths for API (API expects path relative to layer, not full filename yet)
+                 const sourcePathForApi = sourcePathValue; // API expects "layer/name" format for source
+                 const destinationPathForApi = `${destinationLayer}/${destinationFilename}`; // API expects "layer/name" for destination
+
+
+                 // Prepare params object based on transformation type
+                 const params = {};
+                 if (transformationType === 'normalize') {
+                      params.data_type = document.getElementById('normalizeDataType').value;
+                     // Add other normalize params if needed
+                 } else if (transformationType === 'aggregate') {
+                      params.time_period = document.getElementById('aggregationPeriod').value;
+                     // Add agg_columns if UI is implemented, otherwise relies on backend defaults
+                 } else if (transformationType === 'clean') {
+                     // Add clean params if UI is implemented
+                 }
+
+                 const payload = {
+                     source_path: sourcePathForApi, // "layer/name_without_extension"
+                     destination_path: destinationPathForApi, // "layer/name_without_extension"
+                     transformation_type: transformationType,
+                     params: params
+                 };
+                 console.log("Transformation Payload:", payload);
+
+                 try {
+                     const response = await fetch(`${API_URL}/api/transform`, {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify(payload)
+                     });
+                     const result = await response.json();
+                     console.log("Transformation Result:", result);
+
+                     // Display results
+                     document.getElementById('transformStatus').textContent = result.status;
+                     document.getElementById('transformMessage').textContent = result.message || 'No message.';
+
+                     const statusSpan = document.getElementById('transformStatus');
+                     statusSpan.className = 'badge';
+                     if (result.status === 'success') statusSpan.classList.add('badge-success');
+                     else statusSpan.classList.add('badge-error');
+
+                     const recordsContainer = document.getElementById('transformRecordsContainer');
+                     if (result.records_count !== undefined) {
+                         document.getElementById('transformRecords').textContent = result.records_count.toLocaleString();
+                         recordsContainer.style.display = 'flex';
+                     } else {
+                         recordsContainer.style.display = 'none';
+                     }
+
+                      const fileContainer = document.getElementById('transformFileContainer');
+                     if (result.file_path) {
+                         // Extract filename from the full path potentially returned
+                         const filenameOnly = result.file_path.split(/[\\/]/).pop();
+                         document.getElementById('transformFile').textContent = filenameOnly || result.file_path;
+                         fileContainer.style.display = 'flex';
+                         // Enable view button and store the path needed for viewing
+                         viewTransformedDataBtn.disabled = false;
+                         // Store the destination path used in the request ("layer/name")
+                         viewTransformedDataBtn.dataset.viewPath = destinationPathForApi;
+                     } else {
+                         fileContainer.style.display = 'none';
+                         viewTransformedDataBtn.disabled = true;
+                     }
+
+
+                     transformationResultsDiv.classList.remove('hidden');
+                     showToast(`Transformation ${result.status}: ${result.message}`, result.status === 'error');
+
+                      // Refresh dataset list if successful and explore tab is active
+                     if (result.status === 'success') {
+                         fetchOverallDatasetCount(); // Update counts
+                         if (exploreTabBtn.classList.contains('tab-active')) {
+                             loadDatasets();
+                         }
+                     }
+
+
+                 } catch (error) {
+                     console.error('Transformation API call failed:', error);
+                     showToast('Error submitting transformation request. Check console.', true);
+                      document.getElementById('transformStatus').textContent = 'Error';
+                     document.getElementById('transformStatus').className = 'badge badge-error';
+                     document.getElementById('transformMessage').textContent = 'Failed to communicate with API.';
+                     document.getElementById('transformRecordsContainer').style.display = 'none';
+                      document.getElementById('transformFileContainer').style.display = 'none';
+                      transformationResultsDiv.classList.remove('hidden');
+                      viewTransformedDataBtn.disabled = true;
+                 } finally {
+                      setLoadingState(submitTransformationBtn, false);
+                 }
+            });
+
+
+             viewTransformedDataBtn.addEventListener('click', function() {
+                const viewPath = this.dataset.viewPath; // Should be "layer/name"
+                if (!viewPath) return;
+
+                const [layer, datasetName] = viewPath.split('/');
+                if (!layer || !datasetName) {
+                    console.error("Invalid view path stored:", viewPath);
+                    showToast("Cannot determine which dataset to view.", true);
+                    return;
+                }
+
+                // Switch to explore tab
+                switchTab('explore');
+
+                // Set the data layer dropdown and trigger dataset loading
+                dataLayerSelect.value = layer;
+                 loadDatasets().then(() => { // Wait for datasets to load
+                     // Set a slight delay to ensure dropdown is fully populated in the DOM
+                     setTimeout(() => {
+                         datasetSelect.value = datasetName;
+                         if (datasetSelect.value === datasetName) { // Check if selection was successful
+                             datasetSelect.dispatchEvent(new Event('change')); // Trigger data loading
+                         } else {
+                             console.warn(`Dataset ${datasetName} not found in dropdown after loading ${layer} layer.`);
+                             showToast(`Could not automatically select ${datasetName}. Please select it manually.`, true);
+                         }
+                     }, 200); // 200ms delay, adjust if needed
+                 });
+            });
+
+
+             // --- Dashboard Stats Update ---
+             async function fetchOverallDatasetCount() {
+                 let totalCount = 0;
+                 try {
+                     const layers = ['bronze', 'silver', 'gold'];
+                     const responses = await Promise.all(
+                         layers.map(layer => fetch(`${API_URL}/api/datasets?layer=${layer}`))
+                     );
+                     for (const response of responses) {
+                         if (response.ok) {
+                             const datasets = await response.json();
+                             totalCount += datasets.length;
+                         }
+                     }
+                     document.getElementById('datasetCount').textContent = `${totalCount} Available`;
+                 } catch (error) {
+                     console.error('Error fetching overall dataset count:', error);
+                      document.getElementById('datasetCount').textContent = `Error`;
+                 }
+             }
+
+            // --- Initialization ---
+             function initializeApp() {
+                 console.log("Initializing Financial Data Platform UI...");
+                 switchTab('ingest');      // Start on Ingestion tab
+                 updateDataTypeOptions();  // Set initial data types for default source
+                 fetchOverallDatasetCount(); // Fetch initial total dataset count
+                 loadSourceDatasets();      // Fetch initial transformation source list & count
+                 // Initial load for explorer happens when tab is clicked
+                 showToast('Welcome to the Financial Data Platform!');
+                 console.log("Initialization complete.");
+             }
+
+             initializeApp(); // Run initialization logic
+
+        }); // End DOMContentLoaded
+    </script>
+</body>
+</html>
